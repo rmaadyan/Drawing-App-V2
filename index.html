@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional 2D Drawing Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background-color: #f0f0f0;
+            padding: 15px 20px;
+            border-bottom: 2px solid #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .tool-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .tool-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .tool-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .tool-btn, .color-btn, .action-btn {
+            padding: 8px 12px;
+            border: 2px solid #333;
+            background-color: #999;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            min-width: 40px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-btn:hover, .action-btn:hover {
+            background-color: #ccc;
+        }
+
+        .tool-btn.active {
+            background-color: #64a5ff;
+            color: white;
+        }
+
+        .color-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .color-btn.active {
+            border: 4px solid white;
+            box-shadow: 0 0 0 2px #333;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider {
+            width: 150px;
+            height: 20px;
+            background-color: #ddd;
+            border: 1px solid #333;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .slider-handle {
+            width: 16px;
+            height: 24px;
+            background-color: #666;
+            position: absolute;
+            top: -2px;
+            cursor: grab;
+        }
+
+        .slider-handle:active {
+            cursor: grabbing;
+        }
+
+        .slider-value {
+            font-size: 12px;
+            color: #333;
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            background-color: white;
+        }
+
+        #canvas {
+            display: block;
+            cursor: crosshair;
+            background-color: white;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            background-color: rgba(240, 240, 240, 0.9);
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .coordinates {
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .instructions {
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Shape icons using CSS */
+        .icon-point::before { content: "●"; }
+        .icon-line::before { content: "╱"; }
+        .icon-rectangle::before { content: "□"; }
+        .icon-circle::before { content: "○"; }
+        .icon-ellipse::before { content: "⬭"; }
+        .icon-polyline::before { content: "⌐"; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">Professional 2D Drawing Application</div>
+            <div class="toolbar">
+                <!-- Drawing Tools -->
+                <div class="tool-group">
+                    <div class="tool-label">Drawing Tools</div>
+                    <div class="tool-buttons">
+                        <button class="tool-btn active icon-point" data-tool="point" title="Point"></button>
+                        <button class="tool-btn icon-line" data-tool="line" title="Line"></button>
+                        <button class="tool-btn icon-rectangle" data-tool="rectangle" title="Rectangle"></button>
+                        <button class="tool-btn icon-circle" data-tool="circle" title="Circle"></button>
+                        <button class="tool-btn icon-ellipse" data-tool="ellipse" title="Ellipse"></button>
+                        <button class="tool-btn icon-polyline" data-tool="polyline" title="Polyline">Poly</button>
+                    </div>
+                </div>
+
+                <!-- Transform Tools -->
+                <div class="tool-group">
+                    <div class="tool-label">Transform</div>
+                    <div class="tool-buttons">
+                        <button class="tool-btn" data-transform="select" title="Select">Select</button>
+                        <button class="tool-btn" data-transform="move" title="Move">Move</button>
+                        <button class="tool-btn" data-transform="rotate" title="Rotate">Rotate</button>
+                        <button class="tool-btn" data-transform="scale" title="Scale">Scale</button>
+                    </div>
+                </div>
+
+                <!-- Colors -->
+                <div class="tool-group">
+                    <div class="tool-label">Colors</div>
+                    <div class="tool-buttons">
+                        <button class="color-btn active" data-color="#000000" style="background-color: #000000;" title="Black"></button>
+                        <button class="color-btn" data-color="#ff0000" style="background-color: #ff0000;" title="Red"></button>
+                        <button class="color-btn" data-color="#00ff00" style="background-color: #00ff00;" title="Green"></button>
+                        <button class="color-btn" data-color="#0000ff" style="background-color: #0000ff;" title="Blue"></button>
+                        <button class="color-btn" data-color="#ffff00" style="background-color: #ffff00;" title="Yellow"></button>
+                        <button class="color-btn" data-color="#800080" style="background-color: #800080;" title="Purple"></button>
+                        <button class="color-btn" data-color="#00ffff" style="background-color: #00ffff;" title="Cyan"></button>
+                        <button class="color-btn" data-color="#ffa500" style="background-color: #ffa500;" title="Orange"></button>
+                        <button class="color-btn" data-color="#ffc0cb" style="background-color: #ffc0cb;" title="Pink"></button>
+                        <button class="color-btn" data-color="#ffffff" style="background-color: #ffffff; border-color: #999;" title="White"></button>
+                    </div>
+                </div>
+
+                <!-- Thickness Slider -->
+                <div class="tool-group">
+                    <div class="tool-label">Thickness</div>
+                    <div class="slider-container">
+                        <div class="slider" id="thicknessSlider">
+                            <div class="slider-handle" id="thicknessHandle"></div>
+                        </div>
+                        <div class="slider-value" id="thicknessValue">5px</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="tool-group">
+                    <div class="tool-label">Actions</div>
+                    <div class="tool-buttons">
+                        <button class="action-btn" id="undoBtn" title="Undo">Undo</button>
+                        <button class="action-btn" id="clearBtn" title="Clear All">Clear All</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <canvas id="canvas"></canvas>
+            <div class="status-bar">
+                <div class="mode-info" id="modeInfo">Mode: Point</div>
+                <div class="instructions" id="instructions">Click to place points</div>
+                <div class="coordinates" id="coordinates">Mouse: (0, 0)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DrawingApp {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.setupCanvas();
+
+                // App state
+                this.currentTool = 'point';
+                this.currentColor = '#000000';
+                this.thickness = 5;
+                this.transformMode = null;
+
+                // Drawing state
+                this.isDrawing = false;
+                this.startPos = null;
+                this.shapes = [];
+                this.polylinePoints = [];
+                this.selectedShape = null;
+                this.isTransforming = false;
+                this.transformStartPos = null;
+                this.originalShapeData = null;
+
+                // Mouse state
+                this.mousePos = { x: 0, y: 0 };
+
+                // Undo stack
+                this.undoStack = [];
+
+                this.setupEventListeners();
+                this.setupSliders();
+                this.render();
+            }
+
+            setupCanvas() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight - rect.top;
+                
+                // Handle resize
+                window.addEventListener('resize', () => {
+                    const rect = this.canvas.parentElement.getBoundingClientRect();
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight - rect.top;
+                    this.render();
+                });
+            }
+
+            setupEventListeners() {
+                // Tool buttons
+                document.querySelectorAll('[data-tool]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setTool(e.target.dataset.tool);
+                    });
+                });
+
+                // Transform buttons
+                document.querySelectorAll('[data-transform]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setTransformMode(e.target.dataset.transform);
+                    });
+                });
+
+                // Color buttons
+                document.querySelectorAll('[data-color]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setColor(e.target.dataset.color);
+                    });
+                });
+
+                // Action buttons
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearAll());
+
+                // Canvas events
+                this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+
+                // Keyboard events
+                document.addEventListener('keydown', (e) => this.onKeyDown(e));
+            }
+
+            setupSliders() {
+                const slider = document.getElementById('thicknessSlider');
+                const handle = document.getElementById('thicknessHandle');
+                const value = document.getElementById('thicknessValue');
+
+                let isDragging = false;
+
+                const updateSlider = (clientX) => {
+                    const rect = slider.getBoundingClientRect();
+                    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                    const thickness = Math.round(1 + pos * 19); // 1-20
+                    
+                    this.thickness = thickness;
+                    handle.style.left = (pos * (rect.width - 16)) + 'px';
+                    value.textContent = thickness + 'px';
+                };
+
+                // Initialize slider
+                updateSlider(slider.getBoundingClientRect().left + (4/20) * slider.getBoundingClientRect().width);
+
+                handle.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    e.preventDefault();
+                });
+
+                slider.addEventListener('click', (e) => {
+                    if (!isDragging) updateSlider(e.clientX);
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) updateSlider(e.clientX);
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+            }
+
+            setTool(tool) {
+                this.currentTool = tool;
+                this.transformMode = null;
+                this.selectedShape = null;
+                this.isTransforming = false;
+                this.polylinePoints = [];
+
+                // Update UI
+                document.querySelectorAll('[data-tool]').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+                document.querySelectorAll('[data-transform]').forEach(btn => btn.classList.remove('active'));
+
+                this.updateStatus();
+                this.render();
+            }
+
+            setTransformMode(mode) {
+                this.transformMode = mode;
+                this.currentTool = null;
+                this.isDrawing = false;
+                this.polylinePoints = [];
+
+                // Update UI
+                document.querySelectorAll('[data-transform]').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-transform="${mode}"]`).classList.add('active');
+                document.querySelectorAll('[data-tool]').forEach(btn => btn.classList.remove('active'));
+
+                this.updateStatus();
+                this.render();
+            }
+
+            setColor(color) {
+                this.currentColor = color;
+
+                // Update UI
+                document.querySelectorAll('[data-color]').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-color="${color}"]`).classList.add('active');
+            }
+
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            onMouseDown(e) {
+                const pos = this.getMousePos(e);
+                
+                if (this.transformMode) {
+                    const clickedShape = this.findShapeAtPos(pos);
+                    
+                    if (clickedShape !== null) {
+                        this.selectedShape = clickedShape;
+                        
+                        if (this.transformMode !== 'select') {
+                            this.isTransforming = true;
+                            this.transformStartPos = pos;
+                            this.originalShapeData = this.copyShape(this.shapes[this.selectedShape]);
+                        }
+                    } else {
+                        this.selectedShape = null;
+                        this.isTransforming = false;
+                    }
+                } else if (this.currentTool) {
+                    this.saveState();
+                    
+                    if (this.currentTool === 'point') {
+                        this.shapes.push({
+                            type: 'point',
+                            pos: pos,
+                            color: this.currentColor,
+                            thickness: this.thickness
+                        });
+                    } else if (this.currentTool === 'polyline') {
+                        this.polylinePoints.push(pos);
+                    } else {
+                        this.isDrawing = true;
+                        this.startPos = pos;
+                    }
+                }
+
+                this.updateStatus();
+                this.render();
+            }
+
+            onMouseMove(e) {
+                this.mousePos = this.getMousePos(e);
+                
+                // Update coordinates
+                document.getElementById('coordinates').textContent = 
+                    `Mouse: (${Math.round(this.mousePos.x)}, ${Math.round(this.mousePos.y)})`;
+
+                if (this.isTransforming && this.selectedShape !== null) {
+                    this.applyTransform(this.mousePos);
+                }
+
+                this.render();
+            }
+
+            onMouseUp(e) {
+                if (this.isDrawing && this.startPos) {
+                    const pos = this.getMousePos(e);
+                    const shape = {
+                        color: this.currentColor,
+                        thickness: this.thickness
+                    };
+
+                    switch (this.currentTool) {
+                        case 'line':
+                            shape.type = 'line';
+                            shape.start = this.startPos;
+                            shape.end = pos;
+                            break;
+                        case 'rectangle':
+                            shape.type = 'rectangle';
+                            shape.start = this.startPos;
+                            shape.end = pos;
+                            break;
+                        case 'circle':
+                            shape.type = 'circle';
+                            shape.center = this.startPos;
+                            shape.radius = this.distance(this.startPos, pos);
+                            break;
+                        case 'ellipse':
+                            shape.type = 'ellipse';
+                            shape.start = this.startPos;
+                            shape.end = pos;
+                            break;
+                    }
+
+                    this.shapes.push(shape);
+                }
+
+                this.isDrawing = false;
+                this.isTransforming = false;
+                this.startPos = null;
+                this.transformStartPos = null;
+                this.originalShapeData = null;
+
+                this.render();
+            }
+
+            onKeyDown(e) {
+                switch (e.key) {
+                    case 'Enter':
+                        if (this.currentTool === 'polyline' && this.polylinePoints.length > 0) {
+                            this.saveState();
+                            this.shapes.push({
+                                type: 'polyline',
+                                points: [...this.polylinePoints],
+                                color: this.currentColor,
+                                thickness: this.thickness
+                            });
+                            this.polylinePoints = [];
+                            this.render();
+                        }
+                        break;
+                    case 'Escape':
+                        this.polylinePoints = [];
+                        this.isDrawing = false;
+                        this.isTransforming = false;
+                        this.selectedShape = null;
+                        this.render();
+                        break;
+                    case 'd':
+                    case 'D':
+                        this.selectedShape = null;
+                        this.isTransforming = false;
+                        this.render();
+                        break;
+                }
+            }
+
+            applyTransform(mousePos) {
+                if (!this.transformStartPos || !this.originalShapeData) return;
+
+                const shape = this.shapes[this.selectedShape];
+                
+                switch (this.transformMode) {
+                    case 'move':
+                        this.applyMove(shape, mousePos);
+                        break;
+                    case 'rotate':
+                        this.applyRotate(shape, mousePos);
+                        break;
+                    case 'scale':
+                        this.applyScale(shape, mousePos);
+                        break;
+                }
+            }
+
+            applyMove(shape, mousePos) {
+                const dx = mousePos.x - this.transformStartPos.x;
+                const dy = mousePos.y - this.transformStartPos.y;
+
+                // Restore original and apply movement
+                Object.assign(shape, this.copyShape(this.originalShapeData));
+                this.moveShape(shape, dx, dy);
+            }
+
+            applyRotate(shape, mousePos) {
+                const center = this.getShapeCenter(this.originalShapeData);
+                const angle = Math.atan2(mousePos.y - center.y, mousePos.x - center.x);
+
+                // Restore original and apply rotation
+                Object.assign(shape, this.copyShape(this.originalShapeData));
+                this.rotateShape(shape, angle, center);
+            }
+
+            applyScale(shape, mousePos) {
+                const center = this.getShapeCenter(this.originalShapeData);
+                const currentDist = this.distance(mousePos, center);
+                const originalDist = this.distance(this.transformStartPos, center);
+                
+                if (originalDist > 0) {
+                    const scaleFactor = Math.max(0.1, Math.min(5.0, currentDist / originalDist));
+                    
+                    // Restore original and apply scaling
+                    Object.assign(shape, this.copyShape(this.originalShapeData));
+                    this.scaleShape(shape, scaleFactor, center);
+                }
+            }
+
+            moveShape(shape, dx, dy) {
+                switch (shape.type) {
+                    case 'point':
+                        shape.pos.x += dx;
+                        shape.pos.y += dy;
+                        break;
+                    case 'line':
+                        shape.start.x += dx;
+                        shape.start.y += dy;
+                        shape.end.x += dx;
+                        shape.end.y += dy;
+                        break;
+                    case 'rectangle':
+                    case 'ellipse':
+                        shape.start.x += dx;
+                        shape.start.y += dy;
+                        shape.end.x += dx;
+                        shape.end.y += dy;
+                        break;
+                    case 'circle':
+                        shape.center.x += dx;
+                        shape.center.y += dy;
+                        break;
+                    case 'polyline':
+                        shape.points.forEach(p => {
+                            p.x += dx;
+                            p.y += dy;
+                        });
+                        break;
+                }
+            }
+
+            rotateShape(shape, angle, center) {
+                const rotatePoint = (point, center, angle) => {
+                    const cos = Math.cos(angle);
+                    const sin = Math.sin(angle);
+                    const dx = point.x - center.x;
+                    const dy = point.y - center.y;
+                    
+                    return {
+                        x: center.x + dx * cos - dy * sin,
+                        y: center.y + dx * sin + dy * cos
+                    };
+                };
+
+                switch (shape.type) {
+                    case 'line':
+                        shape.start = rotatePoint(shape.start, center, angle);
+                        shape.end = rotatePoint(shape.end, center, angle);
+                        break;
+                    case 'rectangle':
+                    case 'ellipse':
+                        shape.start = rotatePoint(shape.start, center, angle);
+                        shape.end = rotatePoint(shape.end, center, angle);
+                        break;
+                    case 'polyline':
+                        shape.points = shape.points.map(p => rotatePoint(p, center, angle));
+                        break;
+                }
+            }
+
+            scaleShape(shape, factor, center) {
+                const scalePoint = (point, center, factor) => ({
+                    x: center.x + (point.x - center.x) * factor,
+                    y: center.y + (point.y - center.y) * factor
+                });
+
+                switch (shape.type) {
+                    case 'line':
+                        shape.start = scalePoint(shape.start, center, factor);
+                        shape.end = scalePoint(shape.end, center, factor);
+                        break;
+                    case 'rectangle':
+                    case 'ellipse':
+                        shape.start = scalePoint(shape.start, center, factor);
+                        shape.end = scalePoint(shape.end, center, factor);
+                        break;
+                    case 'circle':
+                        shape.radius *= factor;
+                        break;
+                    case 'polyline':
+                        shape.points = shape.points.map(p => scalePoint(p, center, factor));
+                        break;
+                }
+            }
+
+            getShapeCenter(shape) {
+                switch (shape.type) {
+                    case 'point':
+                        return shape.pos;
+                    case 'line':
+                        return {
+                            x: (shape.start.x + shape.end.x) / 2,
+                            y: (shape.start.y + shape.end.y) / 2
+                        };
+                    case 'rectangle':
+                    case 'ellipse':
+                        return {
+                            x: (shape.start.x + shape.end.x) / 2,
+                            y: (shape.start.y + shape.end.y) / 2
+                        };
+                    case 'circle':
+                        return shape.center;
+                    case 'polyline':
+                        const x = shape.points.reduce((sum, p) => sum + p.x, 0) / shape.points.length;
+                        const y = shape.points.reduce((sum, p) => sum + p.y, 0) / shape.points.length;
+                        return { x, y };
+                }
+                return { x: 0, y: 0 };
+            }
+
+            findShapeAtPos(pos) {
+                for (let i = this.shapes.length - 1; i >= 0; i--) {
+                    if (this.isPointOnShape(pos, this.shapes[i])) {
+                        return i;
+                    }
+                }
+                return null;
+            }
+
+            isPointOnShape(pos, shape) {
+                const tolerance = 15;
+
+                switch (shape.type) {
+                    case 'point':
+                        return this.distance(pos, shape.pos) <= tolerance;
+                    case 'line':
+                        return this.pointLineDistance(pos, shape.start, shape.end) <= tolerance;
+                    case 'rectangle':
+                        const minX = Math.min(shape.start.x, shape.end.x);
+                        const maxX = Math.max(shape.start.x, shape.end.x);
+                        const minY = Math.min(shape.start.y, shape.end.y);
+                        const maxY = Math.max(shape.start.y, shape.end.y);
+                        return pos.x >= minX - tolerance && pos.x <= maxX + tolerance &&
+                               pos.y >= minY - tolerance && pos.y <= maxY + tolerance;
+                    case 'circle':
+                        const dist = this.distance(pos, shape.center);
+                        return Math.abs(dist - shape.radius) <= tolerance || dist <= shape.radius;
+                    case 'ellipse':
+                        const ex = Math.min(shape.start.x, shape.end.x);
+                        const ey = Math.min(shape.start.y, shape.end.y);
+                        const ew = Math.abs(shape.end.x - shape.start.x);
+                        const eh = Math.abs(shape.end.y - shape.start.y);
+                        return pos.x >= ex - tolerance && pos.x <= ex + ew + tolerance &&
+                               pos.y >= ey - tolerance && pos.y <= ey + eh + tolerance;
+                    case 'polyline':
+                        return shape.points.some(p => this.distance(pos, p) <= tolerance);
+                }
+                return false;
+            }
+
+            distance(p1, p2) {
+                return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+            }
+
+            pointLineDistance(point, lineStart, lineEnd) {
+                const A = point.y - lineStart.y;
+                const B = lineStart.x - point.x;
+                const C = point.x * lineStart.y - lineStart.x * point.y;
+                return Math.abs(A * lineEnd.x + B * lineEnd.y + C) / 
+                       Math.sqrt(A * A + B * B + 1e-10);
+            }
+
+            copyShape(shape) {
+                return JSON.parse(JSON.stringify(shape));
+            }
+
+            saveState() {
+                this.undoStack.push(JSON.parse(JSON.stringify(this.shapes)));
+                if (this.undoStack.length > 50) {
+                    this.undoStack.shift();
+                }
+            }
+
+            undo() {
+                if (this.undoStack.length > 0) {
+                    this.shapes = this.undoStack.pop();
+                    this.selectedShape = null;
+                    this.isTransforming = false;
+                    this.render();
+                }
+            }
+
+            clearAll() {
+                this.saveState();
+                this.shapes = [];
+                this.polylinePoints = [];
+                this.selectedShape = null;
+                this.isTransforming = false;
+                this.render();
+            }
+
+            updateStatus() {
+                const modeInfo = document.getElementById('modeInfo');
+                const instructions = document.getElementById('instructions');
+
+                let mode = this.currentTool ? this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1) : '';
+                if (this.transformMode) {
+                    mode = this.transformMode.charAt(0).toUpperCase() + this.transformMode.slice(1);
+                }
+
+                if (this.selectedShape !== null) {
+                    mode += ` | Selected: Shape ${this.selectedShape + 1}`;
+                }
+
+                modeInfo.textContent = `Mode: ${mode}`;
+
+                // Instructions
+                let instruction = '';
+                if (this.currentTool === 'polyline') {
+                    instruction = 'Click to add points, Enter to finish, Escape to cancel';
+                } else if (this.transformMode && this.selectedShape !== null) {
+                    switch (this.transformMode) {
+                        case 'move':
+                            instruction = 'Click and drag to move object';
+                            break;
+                        case 'rotate':
+                            instruction = 'Click and move mouse to rotate object';
+                            break;
+                        case 'scale':
+                            instruction = 'Click and move mouse to scale object';
+                            break;
+                        default:
+                            instruction = 'Object selected - choose transform tool';
+                    }
+                } else if (this.transformMode) {
+                    instruction = 'Click on an object to select it';
+                } else if (this.currentTool) {
+                    instruction = `Click to draw ${this.currentTool}`;
+                }
+
+                instructions.textContent = instruction;
+            }
+
+            render() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw shapes
+                this.shapes.forEach((shape, index) => {
+                    this.drawShape(shape, index === this.selectedShape);
+                });
+
+                // Draw temporary polyline
+                if (this.currentTool === 'polyline' && this.polylinePoints.length > 0) {
+                    this.ctx.strokeStyle = this.currentColor;
+                    this.ctx.lineWidth = this.thickness;
+                    
+                    if (this.polylinePoints.length > 1) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.polylinePoints[0].x, this.polylinePoints[0].y);
+                        for (let i = 1; i < this.polylinePoints.length; i++) {
+                            this.ctx.lineTo(this.polylinePoints[i].x, this.polylinePoints[i].y);
+                        }
+                        this.ctx.stroke();
+                    }
+
+                    // Draw points
+                    this.polylinePoints.forEach(point => {
+                        this.ctx.beginPath();
+                        this.ctx.arc(point.x, point.y, Math.max(2, this.thickness / 2), 0, Math.PI * 2);
+                        this.ctx.fill();
+                    });
+
+                    // Preview line to mouse
+                    if (this.polylinePoints.length > 0) {
+                        this.ctx.strokeStyle = '#888';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.setLineDash([5, 5]);
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.polylinePoints[this.polylinePoints.length - 1].x, 
+                                       this.polylinePoints[this.polylinePoints.length - 1].y);
+                        this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
+                        this.ctx.stroke();
+                        this.ctx.setLineDash([]);
+                    }
+                }
+
+                // Draw temporary shape while drawing
+                if (this.isDrawing && this.startPos) {
+                    this.drawTempShape();
+                }
+            }
+
+            drawShape(shape, isSelected) {
+                this.ctx.strokeStyle = shape.color;
+                this.ctx.fillStyle = shape.color;
+                this.ctx.lineWidth = shape.thickness;
+
+                switch (shape.type) {
+                    case 'point':
+                        this.ctx.beginPath();
+                        this.ctx.arc(shape.pos.x, shape.pos.y, Math.max(3, shape.thickness), 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        if (isSelected) {
+                            this.ctx.strokeStyle = '#ff0000';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.beginPath();
+                            this.ctx.arc(shape.pos.x, shape.pos.y, Math.max(3, shape.thickness) + 5, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+                        break;
+
+                    case 'line':
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(shape.start.x, shape.start.y);
+                        this.ctx.lineTo(shape.end.x, shape.end.y);
+                        this.ctx.stroke();
+                        
+                        if (isSelected) {
+                            this.ctx.fillStyle = '#ff0000';
+                            this.ctx.beginPath();
+                            this.ctx.arc(shape.start.x, shape.start.y, 5, 0, Math.PI * 2);
+                            this.ctx.fill();
+                            this.ctx.beginPath();
+                            this.ctx.arc(shape.end.x, shape.end.y, 5, 0, Math.PI * 2);
+                            this.ctx.fill();
+                        }
+                        break;
+
+                    case 'rectangle':
+                        const x = Math.min(shape.start.x, shape.end.x);
+                        const y = Math.min(shape.start.y, shape.end.y);
+                        const width = Math.abs(shape.end.x - shape.start.x);
+                        const height = Math.abs(shape.end.y - shape.start.y);
+                        
+                        this.ctx.beginPath();
+                        this.ctx.rect(x, y, width, height);
+                        this.ctx.stroke();
+                        
+                        if (isSelected) {
+                            this.ctx.strokeStyle = '#ff0000';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.beginPath();
+                            this.ctx.rect(x - 3, y - 3, width + 6, height + 6);
+                            this.ctx.stroke();
+                        }
+                        break;
+
+                    case 'circle':
+                        this.ctx.beginPath();
+                        this.ctx.arc(shape.center.x, shape.center.y, shape.radius, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        
+                        if (isSelected) {
+                            this.ctx.strokeStyle = '#ff0000';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.beginPath();
+                            this.ctx.arc(shape.center.x, shape.center.y, shape.radius + 3, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                            this.ctx.fillStyle = '#ff0000';
+                            this.ctx.beginPath();
+                            this.ctx.arc(shape.center.x, shape.center.y, 5, 0, Math.PI * 2);
+                            this.ctx.fill();
+                        }
+                        break;
+
+                    case 'ellipse':
+                        const ex = Math.min(shape.start.x, shape.end.x);
+                        const ey = Math.min(shape.start.y, shape.end.y);
+                        const ew = Math.abs(shape.end.x - shape.start.x);
+                        const eh = Math.abs(shape.end.y - shape.start.y);
+                        
+                        if (ew > 2 && eh > 2) {
+                            this.ctx.beginPath();
+                            this.ctx.ellipse(ex + ew/2, ey + eh/2, ew/2, eh/2, 0, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                            
+                            if (isSelected) {
+                                this.ctx.strokeStyle = '#ff0000';
+                                this.ctx.lineWidth = 2;
+                                this.ctx.beginPath();
+                                this.ctx.ellipse(ex + ew/2, ey + eh/2, ew/2 + 3, eh/2 + 3, 0, 0, Math.PI * 2);
+                                this.ctx.stroke();
+                            }
+                        }
+                        break;
+
+                    case 'polyline':
+                        if (shape.points.length > 1) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(shape.points[0].x, shape.points[0].y);
+                            for (let i = 1; i < shape.points.length; i++) {
+                                this.ctx.lineTo(shape.points[i].x, shape.points[i].y);
+                            }
+                            this.ctx.stroke();
+                        }
+                        
+                        shape.points.forEach(point => {
+                            this.ctx.beginPath();
+                            this.ctx.arc(point.x, point.y, Math.max(2, shape.thickness / 2), 0, Math.PI * 2);
+                            this.ctx.fill();
+                        });
+                        
+                        if (isSelected) {
+                            this.ctx.strokeStyle = '#ff0000';
+                            this.ctx.lineWidth = 2;
+                            shape.points.forEach(point => {
+                                this.ctx.beginPath();
+                                this.ctx.arc(point.x, point.y, Math.max(2, shape.thickness / 2) + 3, 0, Math.PI * 2);
+                                this.ctx.stroke();
+                            });
+                        }
+                        break;
+                }
+            }
+
+            drawTempShape() {
+                this.ctx.strokeStyle = this.currentColor;
+                this.ctx.lineWidth = this.thickness;
+
+                switch (this.currentTool) {
+                    case 'line':
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.startPos.x, this.startPos.y);
+                        this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
+                        this.ctx.stroke();
+                        break;
+
+                    case 'rectangle':
+                        const x = Math.min(this.startPos.x, this.mousePos.x);
+                        const y = Math.min(this.startPos.y, this.mousePos.y);
+                        const width = Math.abs(this.mousePos.x - this.startPos.x);
+                        const height = Math.abs(this.mousePos.y - this.startPos.y);
+                        
+                        this.ctx.beginPath();
+                        this.ctx.rect(x, y, width, height);
+                        this.ctx.stroke();
+                        break;
+
+                    case 'circle':
+                        const radius = this.distance(this.startPos, this.mousePos);
+                        this.ctx.beginPath();
+                        this.ctx.arc(this.startPos.x, this.startPos.y, radius, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        break;
+
+                    case 'ellipse':
+                        const ex = Math.min(this.startPos.x, this.mousePos.x);
+                        const ey = Math.min(this.startPos.y, this.mousePos.y);
+                        const ew = Math.abs(this.mousePos.x - this.startPos.x);
+                        const eh = Math.abs(this.mousePos.y - this.startPos.y);
+                        
+                        if (ew > 2 && eh > 2) {
+                            this.ctx.beginPath();
+                            this.ctx.ellipse(ex + ew/2, ey + eh/2, ew/2, eh/2, 0, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Initialize the application
+        const app = new DrawingApp();
+    </script>
+</body>
+</html>
